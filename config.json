@@ -1,0 +1,22 @@
+{
+  "debug":false,
+
+  "device_manager_url":"",
+  "perm_search_url":"",
+  "topic_generator":"",
+  "zookeeper_url":"",
+  "connection_log_state_url":"",
+  "vernemq_management_url":"",
+  "auth_endpoint":"",
+  "auth_client_id":"",
+  "auth_client_secret":"",
+  "handled_protocols":null,
+
+  "device_log_topic":"device_log",
+  "hub_log_topic":"gateway_log",
+  "interval_seconds":300,
+
+  "memcache_urls":null,
+  "cache_l_1_expiration":0,
+  "cache_l_2_expiration":0
+}
