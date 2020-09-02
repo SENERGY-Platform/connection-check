@@ -91,14 +91,14 @@ func (this *ConnectionCheck) runDevices() {
 	startTime := time.Now()
 	log.Println("start device-check")
 	err := this.RunDevices()
-	log.Print("finish device-check", time.Now().Sub(startTime), err)
+	log.Println("finish device-check", time.Now().Sub(startTime), err)
 }
 
 func (this *ConnectionCheck) runHubs() {
 	startTime := time.Now()
 	log.Println("start hub-check")
 	err := this.RunHubs()
-	log.Print("finish hub-check", time.Now().Sub(startTime), err)
+	log.Println("finish hub-check", time.Now().Sub(startTime), err)
 }
 
 func (this *ConnectionCheck) RunDevices() (err error) {
