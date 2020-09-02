@@ -1,5 +1,6 @@
 {
   "debug":false,
+  "batch_size": 100,
 
   "device_manager_url":"",
   "perm_search_url":"",

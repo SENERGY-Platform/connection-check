@@ -7,6 +7,7 @@ This service is used to periodically check the connection state of devices and h
 | config.json              | env                      | desc                                                                                                                      |
 |--------------------------|--------------------------|---------------------------------------------------------------------------------------------------------------------------|
 | debug                    | DEBUG                    | boolean to enable debug mode                                                                                              |
+| batch_size               | BATCH_SIZE               | count of devices/hubs used as 'limit' in requests to permission-search                                                    |
 | device_manager_url       | DEVICE_MANAGER_URL       | url to the device-manager                                                                                                 |
 | perm_search_url          | PERM_SEARCH_URL          | url to the permission-search query service                                                                                |
 | topic_generator          | TOPIC_GENERATOR          | selection of the topic generator, implemented in ./pkg/topicgenerator (currently allowed values are "mqtt" and "senergy") |
@@ -45,3 +46,7 @@ This service is used to periodically check the connection state of devices and h
 4. get the current known connection state of the device from the connection-log service
 5. check vernemq if the topic is actually subscribed to
 6. send the new actual state to connection-log-worker if needed
+
+
+## Known Limitation
+- if a device has more than one service that may subscribe to a topic only one of this topics is checked.

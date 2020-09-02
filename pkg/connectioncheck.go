@@ -53,7 +53,7 @@ func New(config configuration.Config) (*ConnectionCheck, error) {
 		Devices:                    devices.New(config),
 		TokenGen:                   security.New(config.AuthEndpoint, config.AuthClientId, config.AuthClientSecret, 2),
 		SubscriptionTopicGenerator: topic,
-		BatchSize:                  100,
+		BatchSize:                  config.BatchSize,
 		HandledProtocols:           handledProtocols,
 		Debug:                      config.Debug,
 	}, nil

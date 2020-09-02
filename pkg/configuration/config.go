@@ -30,6 +30,8 @@ import (
 type ConfigStruct struct {
 	Debug bool `json:"debug"`
 
+	BatchSize int `json:"batch_size"`
+
 	DeviceManagerUrl      string   `json:"device_manager_url"`
 	PermSearchUrl         string   `json:"perm_search_url"`
 	TopicGenerator        string   `json:"topic_generator"`
