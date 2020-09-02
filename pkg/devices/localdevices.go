@@ -28,7 +28,7 @@ import (
 
 func (this *Devices) GetDeviceByLocalId(token string, localId string) (result model.Device, err error) {
 	err = this.cache.Use("local-devices."+localId, func() (interface{}, error) {
-		return this.getDeviceType(localId, token)
+		return this.getDeviceByLocalId(token, localId)
 	}, &result)
 	return
 }
