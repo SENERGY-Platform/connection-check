@@ -28,7 +28,7 @@ import (
 
 //returns devices as known by the permissions search service
 func (this *Devices) ListDevices(token string, limit int, offset int) (result []model.Device, err error) {
-	req, err := http.NewRequest("GET", this.config.PermSearchUrl+"/jwt/list/devices/r/"+strconv.Itoa(limit)+"/"+strconv.Itoa(offset)+"/id/asc", nil)
+	req, err := http.NewRequest("GET", this.config.PermSearchUrl+"/jwt/list/devices/r/"+strconv.Itoa(limit)+"/"+strconv.Itoa(offset)+"/name/asc", nil)
 	if err != nil {
 		debug.PrintStack()
 		return result, err
@@ -56,7 +56,7 @@ func (this *Devices) ListDevices(token string, limit int, offset int) (result []
 
 //returns hubs as known by the permissions search service
 func (this *Devices) ListHubs(token string, limit int, offset int) (result []model.Hub, err error) {
-	req, err := http.NewRequest("GET", this.config.PermSearchUrl+"/jwt/list/hubs/r/"+strconv.Itoa(limit)+"/"+strconv.Itoa(offset)+"/id/asc", nil)
+	req, err := http.NewRequest("GET", this.config.PermSearchUrl+"/jwt/list/hubs/r/"+strconv.Itoa(limit)+"/"+strconv.Itoa(offset)+"/name/asc", nil)
 	if err != nil {
 		debug.PrintStack()
 		return result, err
