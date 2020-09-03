@@ -22,98 +22,109 @@ import (
 )
 
 type Statistics struct {
-	CheckedDevices            int `json:"checked_devices,omitempty"`
-	CheckedHubs               int `json:"checked_hubs,omitempty"`
-	ConnectedDevices          int `json:"connected_devices,omitempty"`
-	ConnectedHubs             int `json:"connected_hubs,omitempty"`
-	UpdateConnectedDevices    int `json:"update_connected_devices,omitempty"`
-	UpdateDisconnectedDevices int `json:"update_disconnected_devices,omitempty"`
-	UpdateConnectedHubs       int `json:"update_connected_hubs,omitempty"`
-	UpdateDisconnectedHubs    int `json:"update_disconnected_hubs,omitempty"`
-	timeVerneRequestsDevices  time.Duration
-	timeVerneRequestsHubs     time.Duration
+	Checked                int `json:"checked"`
+	Connected              int `json:"connected"`
+	UpdateConnected        int `json:"update_connected"`
+	UpdateDisconnected     int `json:"update_disconnected"`
+	timeVerneRequests      time.Duration
+	timeListRequests       time.Duration
+	timeRequestDeviceTypes time.Duration
+	timeRequestLocalDevice time.Duration
+	timeRequestLogState    time.Duration
 }
 
 type PrintStatistics struct {
 	Statistics
-	TimeVerneRequestsDevices string `json:"time_verne_requests_devices,omitempty"`
-	TimeVerneRequestsHubs    string `json:"time_verne_requests_hubs,omitempty"`
+	TimeVerneRequests      string `json:"time_verne_requests,omitempty"`
+	TimeListRequests       string `json:"time_list_requests,omitempty"`
+	TimeRequestDeviceTypes string `json:"time_request_device_types,omitempty"`
+	TimeRequestLocalDevice string `json:"time_request_local_device,omitempty"`
+	TimeRequestLogState    string `json:"time_request_log_state,omitempty"`
 }
 
-func (this *Statistics) AddCheckedDevices(count int) {
+func (this *Statistics) AddChecked(count int) {
 	if this != nil {
-		this.CheckedDevices += count
+		this.Checked += count
 	}
 }
 
-func (this *Statistics) AddCheckedHubs(count int) {
+func (this *Statistics) AddConnected(count int) {
 	if this != nil {
-		this.CheckedHubs += count
+		this.Connected += count
 	}
 }
 
-func (this *Statistics) AddConnectedHubs(count int) {
+func (this *Statistics) AddUpdateConnected(count int) {
 	if this != nil {
-		this.ConnectedHubs += count
+		this.UpdateConnected += count
 	}
 }
 
-func (this *Statistics) AddConnectedDevices(count int) {
+func (this *Statistics) AddUpdateDisconnected(count int) {
 	if this != nil {
-		this.ConnectedDevices += count
+		this.UpdateDisconnected += count
 	}
 }
 
-func (this *Statistics) AddUpdateConnectedDevices(count int) {
+func (this *Statistics) AddTimeVerneRequests(dur time.Duration) {
 	if this != nil {
-		this.UpdateConnectedDevices += count
+		this.timeVerneRequests += dur
 	}
 }
 
-func (this *Statistics) AddUpdateDisconnectedDevices(count int) {
+func (this *Statistics) AddTimeListRequests(dur time.Duration) {
 	if this != nil {
-		this.UpdateDisconnectedDevices += count
+		this.timeListRequests += dur
 	}
 }
 
-func (this *Statistics) AddUpdateConnectedHubs(count int) {
+func (this *Statistics) AddTimeRequestDeviceTypes(dur time.Duration) {
 	if this != nil {
-		this.UpdateConnectedHubs += count
+		this.timeRequestDeviceTypes += dur
 	}
 }
 
-func (this *Statistics) AddUpdateDisconnectedHubs(count int) {
+func (this *Statistics) AddTimeRequestLocalDevice(dur time.Duration) {
 	if this != nil {
-		this.UpdateDisconnectedHubs += count
+		this.timeRequestLocalDevice += dur
 	}
 }
 
-func (this *Statistics) AddTimeVerneRequestsDevices(dur time.Duration) {
+func (this *Statistics) AddTimeRequestLogState(dur time.Duration) {
 	if this != nil {
-		this.timeVerneRequestsDevices += dur
-	}
-}
-
-func (this *Statistics) AddTimeVerneRequestsHubs(dur time.Duration) {
-	if this != nil {
-		this.timeVerneRequestsHubs += dur
+		this.timeRequestLogState += dur
 	}
 }
 
 func (this *Statistics) String() string {
 	if this != nil {
-		timeDevices := ""
-		if this.timeVerneRequestsDevices != 0 {
-			timeDevices = this.timeVerneRequestsDevices.String()
+		timeVerneRequests := ""
+		if this.timeVerneRequests != 0 {
+			timeVerneRequests = this.timeVerneRequests.String()
 		}
-		timeHubs := ""
-		if this.timeVerneRequestsHubs != 0 {
-			timeHubs = this.timeVerneRequestsHubs.String()
+		timeListRequests := ""
+		if this.timeListRequests != 0 {
+			timeListRequests = this.timeListRequests.String()
+		}
+		timeRequestDeviceTypes := ""
+		if this.timeRequestDeviceTypes != 0 {
+			timeRequestDeviceTypes = this.timeRequestDeviceTypes.String()
+		}
+		timeRequestLocalDevice := ""
+		if this.timeRequestLocalDevice != 0 {
+			timeRequestLocalDevice = this.timeRequestLocalDevice.String()
+		}
+		timeRequestLogState := ""
+		if this.timeRequestLocalDevice != 0 {
+			timeRequestLogState = this.timeRequestLogState.String()
 		}
 		temp, _ := json.Marshal(PrintStatistics{
-			Statistics:               *this,
-			TimeVerneRequestsDevices: timeDevices,
-			TimeVerneRequestsHubs:    timeHubs,
+			Statistics:             *this,
+			TimeVerneRequests:      timeVerneRequests,
+			TimeListRequests:       timeListRequests,
+			TimeRequestDeviceTypes: timeRequestDeviceTypes,
+			TimeRequestLocalDevice: timeRequestLocalDevice,
+			TimeRequestLogState:    timeRequestLogState,
 		})
 		return string(temp)
 	}

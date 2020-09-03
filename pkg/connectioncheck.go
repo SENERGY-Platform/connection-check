@@ -97,7 +97,7 @@ func (this *ConnectionCheck) runDevices() {
 
 	log.Println("start device-check")
 	err := this.RunDevices(statistics)
-	log.Println("finish device-check", err, time.Now().Sub(startTime), statistics.String())
+	log.Println("finish device-check", err, time.Since(startTime), statistics.String())
 }
 
 func (this *ConnectionCheck) runHubs() {
@@ -110,7 +110,7 @@ func (this *ConnectionCheck) runHubs() {
 
 	log.Println("start hub-check")
 	err := this.RunHubs(statistics)
-	log.Println("finish hub-check", err, time.Now().Sub(startTime), statistics.String())
+	log.Println("finish hub-check", err, time.Since(startTime), statistics.String())
 }
 
 func (this *ConnectionCheck) RunDevices(statistics *Statistics) (err error) {
@@ -146,43 +146,46 @@ func (this *ConnectionCheck) RunHubBatch(limit int, offset int, statistics *Stat
 	if err != nil {
 		return count, err
 	}
+	listStart := time.Now()
 	hubs, err := this.Devices.ListHubs(token, limit, offset)
 	if err != nil {
 		return count, err
 	}
+	statistics.AddTimeListRequests(time.Since(listStart))
 	ids := []string{}
 	filteredHubs := []model.Hub{}
 	for _, hub := range hubs {
-		if this.hubMatchesHandledProtocols(token, hub) {
+		if this.hubMatchesHandledProtocols(token, hub, statistics) {
 			ids = append(ids, hub.Id)
 			filteredHubs = append(filteredHubs, hub)
 		}
 	}
+	logStateStart := time.Now()
 	onlineStates, err := this.LoggerState.GetHubLogStates(token, ids)
 	if err != nil {
 		return count, err
 	}
-	statistics.AddCheckedHubs(len(filteredHubs))
+	statistics.AddTimeRequestLogState(time.Since(logStateStart))
+	statistics.AddChecked(len(filteredHubs))
 	for _, hub := range filteredHubs {
 		timeVerneStart := time.Now()
 		subscriptionIsOnline, err := this.Verne.CheckOnlineClient(hub.Id)
 		if err != nil {
 			return count, err
 		}
-		statistics.AddTimeVerneRequestsHubs(time.Now().Sub(timeVerneStart))
+		statistics.AddTimeVerneRequests(time.Since(timeVerneStart))
+		if subscriptionIsOnline {
+			statistics.AddConnected(1)
+		}
 
 		hubHasOnlineState := onlineStates[hub.Id]
 
-		if hubHasOnlineState {
-			statistics.AddConnectedHubs(1)
-		}
-
 		if hubHasOnlineState && !subscriptionIsOnline {
-			statistics.AddUpdateDisconnectedHubs(1)
+			statistics.AddUpdateDisconnected(1)
 			err = this.Logger.LogHubDisconnect(hub.Id)
 		}
 		if !hubHasOnlineState && subscriptionIsOnline {
-			statistics.AddUpdateConnectedHubs(1)
+			statistics.AddUpdateConnected(1)
 			err = this.Logger.LogHubConnect(hub.Id)
 		}
 		if err != nil {
@@ -197,27 +200,34 @@ func (this *ConnectionCheck) RunDeviceBatch(limit int, offset int, statistics *S
 	if err != nil {
 		return count, err
 	}
+
+	listStart := time.Now()
 	devices, err := this.Devices.ListDevices(token, limit, offset)
 	if err != nil {
 		return count, err
 	}
-	statistics.AddCheckedDevices(len(devices))
+	statistics.AddTimeListRequests(time.Since(listStart))
+	statistics.AddChecked(len(devices))
 	ids := []string{}
 	for _, device := range devices {
 		ids = append(ids, device.Id)
 	}
+	logStateStart := time.Now()
 	onlineStates, err := this.LoggerState.GetDeviceLogStates(token, ids)
 	if err != nil {
 		return count, err
 	}
+	statistics.AddTimeRequestLogState(time.Since(logStateStart))
 	dtCache := map[string]model.DeviceType{}
 	for _, device := range devices {
 		dt, ok := dtCache[device.DeviceTypeId]
 		if !ok {
+			dtStart := time.Now()
 			dt, err = this.Devices.GetDeviceType(token, device.DeviceTypeId)
 			if err != nil {
 				return count, err
 			}
+			statistics.AddTimeRequestDeviceTypes(time.Since(dtStart))
 			dtCache[dt.Id] = dt
 		}
 		topic, err := this.SubscriptionTopicGenerator(device, dt, this.HandledProtocols)
@@ -234,20 +244,20 @@ func (this *ConnectionCheck) RunDeviceBatch(limit int, offset int, statistics *S
 		if err != nil {
 			return count, err
 		}
-		statistics.AddTimeVerneRequestsDevices(time.Now().Sub(timeVerneStart))
+		statistics.AddTimeVerneRequests(time.Since(timeVerneStart))
+
+		if subscriptionIsOnline {
+			statistics.AddConnected(1)
+		}
 
 		deviceHasOnlineState := onlineStates[device.Id]
 
-		if deviceHasOnlineState {
-			statistics.AddConnectedDevices(1)
-		}
-
 		if deviceHasOnlineState && !subscriptionIsOnline {
-			statistics.AddUpdateDisconnectedDevices(1)
+			statistics.AddUpdateDisconnected(1)
 			err = this.Logger.LogDeviceDisconnect(device.Id)
 		}
 		if !deviceHasOnlineState && subscriptionIsOnline {
-			statistics.AddUpdateConnectedDevices(1)
+			statistics.AddUpdateConnected(1)
 			err = this.Logger.LogDeviceConnect(device.Id)
 		}
 		if err != nil {
@@ -257,16 +267,19 @@ func (this *ConnectionCheck) RunDeviceBatch(limit int, offset int, statistics *S
 	return len(devices), nil
 }
 
-func (this *ConnectionCheck) hubMatchesHandledProtocols(token string, hub model.Hub) bool {
+func (this *ConnectionCheck) hubMatchesHandledProtocols(token string, hub model.Hub, statistics *Statistics) bool {
 	dtCache := map[string]model.DeviceType{}
 	for _, deviceLocalId := range hub.DeviceLocalIds {
+		localIdStart := time.Now()
 		device, err := this.Devices.GetDeviceByLocalId(token, deviceLocalId)
 		if err != nil && this.Debug {
 			log.Println("WARNING: hubMatchesHandledProtocols() unable to load device", deviceLocalId, err)
 		}
+		statistics.AddTimeRequestLocalDevice(time.Since(localIdStart))
 		if err == nil {
 			dt, ok := dtCache[device.DeviceTypeId]
 			if !ok {
+				dtStart := time.Now()
 				dt, err = this.Devices.GetDeviceType(token, device.DeviceTypeId)
 				if err != nil {
 					if this.Debug {
@@ -275,6 +288,7 @@ func (this *ConnectionCheck) hubMatchesHandledProtocols(token string, hub model.
 				} else {
 					dtCache[dt.Id] = dt
 				}
+				statistics.AddTimeRequestLocalDevice(time.Since(dtStart))
 			}
 			if err == nil {
 				if common.DeviceTypeUsesHandledProtocol(dt, this.HandledProtocols) {

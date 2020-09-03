@@ -49,4 +49,5 @@ This service is used to periodically check the connection state of devices and h
 
 
 ## Known Limitation
+- the service can only check for clients and subscribed topics. Devices that only publish and don't subscribe are not handled.
 - if a device has more than one service that may subscribe to a topic only one of this topics is checked.
