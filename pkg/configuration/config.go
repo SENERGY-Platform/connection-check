@@ -49,8 +49,8 @@ type ConfigStruct struct {
 	IntervalSeconds int64 `json:"interval_seconds"`
 
 	MemcacheUrls      []string `json:"memcache_urls"`
-	CacheL1Expiration int      `json:"cache_l_1_expiration"`
-	CacheL2Expiration int32    `json:"cache_l_2_expiration"`
+	CacheL1Expiration int      `json:"cache_l1_expiration"`
+	CacheL2Expiration int32    `json:"cache_l2_expiration"`
 }
 
 type Config = *ConfigStruct

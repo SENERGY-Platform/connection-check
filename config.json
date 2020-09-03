@@ -18,6 +18,6 @@
   "interval_seconds":300,
 
   "memcache_urls":null,
-  "cache_l_1_expiration":0,
-  "cache_l_2_expiration":0
+  "cache_l1_expiration":0,
+  "cache_l2_expiration":0
 }

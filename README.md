@@ -22,8 +22,8 @@ This service is used to periodically check the connection state of devices and h
 | hub_log_topic            | HUB_LOG_TOPIC            | topic used to publish connect and disconnect events of hubs                                                               |
 | interval_seconds         | INTERVAL_SECONDS         |                                                                                                                           |
 | memcache_urls            | MEMCACHE_URLS            | OPTIONAL: list of comma separated urls to memcached instances                                                              |
-| cache_l_1_expiration     | CACHE_L_1_EXPIRATION     | OPTIONAL, DEFAULT = 10 (seconds)                                                                                          |
-| cache_l_2_expiration     | CACHE_L_2_EXPIRATION     | OPTIONAL, DEFAULT = 300 (seconds), only used if memcache_urls is set                                                      |
+| cache_l1_expiration     | CACHE_L1_EXPIRATION     | OPTIONAL, DEFAULT = 10 (seconds)                                                                                          |
+| cache_l2_expiration     | CACHE_L2_EXPIRATION     | OPTIONAL, DEFAULT = 300 (seconds), only used if memcache_urls is set                                                      |
 
 
 ## Process for Hubs
