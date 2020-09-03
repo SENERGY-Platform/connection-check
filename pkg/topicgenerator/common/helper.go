@@ -23,7 +23,7 @@ import (
 
 func GetHandledServices(services []model.Service, handledProtocols map[string]bool) (result []model.Service) {
 	for _, service := range services {
-		if handledProtocols[service.ProtocolId] && UsesControllingFunction(service) {
+		if handledProtocols[service.ProtocolId] && (UsesControllingFunction(service) || service.Interaction == model.REQUEST || service.Interaction == model.EVENT_AND_REQUEST) {
 			result = append(result, service)
 		}
 	}
