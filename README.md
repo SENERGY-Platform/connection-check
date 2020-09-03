@@ -47,6 +47,10 @@ This service is used to periodically check the connection state of devices and h
 5. check vernemq if the topic is actually subscribed to
 6. send the new actual state to connection-log-worker if needed
 
+## Vernemq Management-API
+The vernemq_management_url value expects the url to the Vernemq Management-API with an api-key contained. 
+https://docs.vernemq.com/administration/http-administration
+
 
 ## Known Limitation
 - the service can only check for clients and subscribed topics. Devices that only publish and don't subscribe are not handled.
