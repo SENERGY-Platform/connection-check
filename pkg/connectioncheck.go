@@ -89,24 +89,36 @@ func (this *ConnectionCheck) RunInterval(ctx context.Context, duration time.Dura
 
 func (this *ConnectionCheck) runDevices() {
 	startTime := time.Now()
+
+	var statistics *Statistics
+	if this.Debug {
+		statistics = &Statistics{}
+	}
+
 	log.Println("start device-check")
-	err := this.RunDevices()
-	log.Println("finish device-check", time.Now().Sub(startTime), err)
+	err := this.RunDevices(statistics)
+	log.Println("finish device-check", err, time.Now().Sub(startTime), statistics.String())
 }
 
 func (this *ConnectionCheck) runHubs() {
 	startTime := time.Now()
+
+	var statistics *Statistics
+	if this.Debug {
+		statistics = &Statistics{}
+	}
+
 	log.Println("start hub-check")
-	err := this.RunHubs()
-	log.Println("finish hub-check", time.Now().Sub(startTime), err)
+	err := this.RunHubs(statistics)
+	log.Println("finish hub-check", err, time.Now().Sub(startTime), statistics.String())
 }
 
-func (this *ConnectionCheck) RunDevices() (err error) {
+func (this *ConnectionCheck) RunDevices(statistics *Statistics) (err error) {
 	limit := this.BatchSize
 	offset := 0
 	count := limit
 	for count == limit {
-		count, err = this.RunDeviceBatch(limit, offset)
+		count, err = this.RunDeviceBatch(limit, offset, statistics)
 		if err != nil {
 			return err
 		}
@@ -115,12 +127,12 @@ func (this *ConnectionCheck) RunDevices() (err error) {
 	return nil
 }
 
-func (this *ConnectionCheck) RunHubs() (err error) {
+func (this *ConnectionCheck) RunHubs(statistics *Statistics) (err error) {
 	limit := this.BatchSize
 	offset := 0
 	count := limit
 	for count == limit {
-		count, err = this.RunHubBatch(limit, offset)
+		count, err = this.RunHubBatch(limit, offset, statistics)
 		if err != nil {
 			return err
 		}
@@ -129,7 +141,7 @@ func (this *ConnectionCheck) RunHubs() (err error) {
 	return nil
 }
 
-func (this *ConnectionCheck) RunHubBatch(limit int, offset int) (count int, err error) {
+func (this *ConnectionCheck) RunHubBatch(limit int, offset int, statistics *Statistics) (count int, err error) {
 	token, err := this.TokenGen.Access()
 	if err != nil {
 		return count, err
@@ -150,17 +162,27 @@ func (this *ConnectionCheck) RunHubBatch(limit int, offset int) (count int, err 
 	if err != nil {
 		return count, err
 	}
+	statistics.AddCheckedHubs(len(filteredHubs))
 	for _, hub := range filteredHubs {
+		timeVerneStart := time.Now()
 		subscriptionIsOnline, err := this.Verne.CheckOnlineClient(hub.Id)
 		if err != nil {
 			return count, err
 		}
-		deviceHasOnlineState := onlineStates[hub.Id]
+		statistics.AddTimeVerneRequestsHubs(time.Now().Sub(timeVerneStart))
 
-		if deviceHasOnlineState && !subscriptionIsOnline {
+		hubHasOnlineState := onlineStates[hub.Id]
+
+		if hubHasOnlineState {
+			statistics.AddConnectedHubs(1)
+		}
+
+		if hubHasOnlineState && !subscriptionIsOnline {
+			statistics.AddUpdateDisconnectedHubs(1)
 			err = this.Logger.LogHubDisconnect(hub.Id)
 		}
-		if !deviceHasOnlineState && subscriptionIsOnline {
+		if !hubHasOnlineState && subscriptionIsOnline {
+			statistics.AddUpdateConnectedHubs(1)
 			err = this.Logger.LogHubConnect(hub.Id)
 		}
 		if err != nil {
@@ -170,7 +192,7 @@ func (this *ConnectionCheck) RunHubBatch(limit int, offset int) (count int, err 
 	return len(hubs), nil
 }
 
-func (this *ConnectionCheck) RunDeviceBatch(limit int, offset int) (count int, err error) {
+func (this *ConnectionCheck) RunDeviceBatch(limit int, offset int, statistics *Statistics) (count int, err error) {
 	token, err := this.TokenGen.Access()
 	if err != nil {
 		return count, err
@@ -179,6 +201,7 @@ func (this *ConnectionCheck) RunDeviceBatch(limit int, offset int) (count int, e
 	if err != nil {
 		return count, err
 	}
+	statistics.AddCheckedDevices(len(devices))
 	ids := []string{}
 	for _, device := range devices {
 		ids = append(ids, device.Id)
@@ -205,16 +228,26 @@ func (this *ConnectionCheck) RunDeviceBatch(limit int, offset int) (count int, e
 		if err != nil {
 			return count, err
 		}
+
+		timeVerneStart := time.Now()
 		subscriptionIsOnline, err := this.Verne.CheckOnlineSubscription(topic)
 		if err != nil {
 			return count, err
 		}
+		statistics.AddTimeVerneRequestsDevices(time.Now().Sub(timeVerneStart))
+
 		deviceHasOnlineState := onlineStates[device.Id]
 
+		if deviceHasOnlineState {
+			statistics.AddConnectedDevices(1)
+		}
+
 		if deviceHasOnlineState && !subscriptionIsOnline {
+			statistics.AddUpdateDisconnectedDevices(1)
 			err = this.Logger.LogDeviceDisconnect(device.Id)
 		}
 		if !deviceHasOnlineState && subscriptionIsOnline {
+			statistics.AddUpdateConnectedDevices(1)
 			err = this.Logger.LogDeviceConnect(device.Id)
 		}
 		if err != nil {

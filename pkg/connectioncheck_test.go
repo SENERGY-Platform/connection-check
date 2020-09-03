@@ -132,7 +132,7 @@ func TestConnectionCheck(t *testing.T) {
 	time.Sleep(2 * time.Second)
 
 	t.Run("run devices", func(t *testing.T) {
-		err = check.RunDevices()
+		err = check.RunDevices(nil)
 		if err != nil {
 			t.Error(err)
 			return
@@ -140,7 +140,7 @@ func TestConnectionCheck(t *testing.T) {
 	})
 
 	t.Run("run hubs", func(t *testing.T) {
-		err = check.RunHubs()
+		err = check.RunHubs(nil)
 		if err != nil {
 			t.Error(err)
 			return
@@ -161,6 +161,17 @@ func TestConnectionCheck(t *testing.T) {
 			temp, _ := json.Marshal(loggerMock.Events)
 			t.Error(string(temp))
 		}
+	})
+
+	t.Run("run private debug", func(t *testing.T) {
+		check.Debug = true
+		check.runDevices()
+		check.runHubs()
+	})
+	t.Run("run private without debug", func(t *testing.T) {
+		check.Debug = false
+		check.runDevices()
+		check.runHubs()
 	})
 }
 
