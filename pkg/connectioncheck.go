@@ -207,7 +207,6 @@ func (this *ConnectionCheck) RunDeviceBatch(limit int, offset int, statistics *S
 		return count, err
 	}
 	statistics.AddTimeListRequests(time.Since(listStart))
-	statistics.AddChecked(len(devices))
 	ids := []string{}
 	for _, device := range devices {
 		ids = append(ids, device.Id)
@@ -238,7 +237,7 @@ func (this *ConnectionCheck) RunDeviceBatch(limit int, offset int, statistics *S
 		if err != nil {
 			return count, err
 		}
-
+		statistics.AddChecked(1)
 		timeVerneStart := time.Now()
 		subscriptionIsOnline, err := this.Verne.CheckOnlineSubscription(topic)
 		if err != nil {
