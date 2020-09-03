@@ -54,7 +54,7 @@ func (this *VernemqManagementApi) GetOnlineClients() (result []Client, err error
 	defer resp.Body.Close()
 	if resp.StatusCode >= 300 {
 		buf, _ := ioutil.ReadAll(resp.Body)
-		err = errors.New(string(buf))
+		err = errors.New(resp.Status + ":" + string(buf))
 		log.Println("ERROR: unable to get resource", err)
 		return result, err
 	}
@@ -82,8 +82,8 @@ func (this *VernemqManagementApi) GetOnlineSubscriptions() (result []Subscriptio
 	defer resp.Body.Close()
 	if resp.StatusCode >= 300 {
 		buf, _ := ioutil.ReadAll(resp.Body)
-		err = errors.New(string(buf))
-		log.Println("ERROR: unable to get resource", err)
+		err = errors.New(resp.Status + ":" + string(buf))
+		log.Println("ERROR: unable to get result from vernemq", err)
 		return result, err
 	}
 	temp := SubscriptionWrapper{}
@@ -110,8 +110,8 @@ func (this *VernemqManagementApi) CheckOnlineSubscription(topic string) (onlineS
 	defer resp.Body.Close()
 	if resp.StatusCode >= 300 {
 		buf, _ := ioutil.ReadAll(resp.Body)
-		err = errors.New(string(buf))
-		log.Println("ERROR: unable to get resource", err)
+		err = errors.New(resp.Status + ":" + string(buf))
+		log.Println("ERROR: unable to get result from vernemq", err)
 		return false, err
 	}
 	temp := SubscriptionWrapper{}
@@ -138,8 +138,8 @@ func (this *VernemqManagementApi) CheckOnlineClient(clientId string) (onlineClie
 	defer resp.Body.Close()
 	if resp.StatusCode >= 300 {
 		buf, _ := ioutil.ReadAll(resp.Body)
-		err = errors.New(string(buf))
-		log.Println("ERROR: unable to get resource", err)
+		err = errors.New(resp.Status + ":" + string(buf))
+		log.Println("ERROR: unable to get result from vernemq", err)
 		return false, err
 	}
 	temp := SubscriptionWrapper{}

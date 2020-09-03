@@ -183,10 +183,16 @@ func (this *ConnectionCheck) RunHubBatch(limit int, offset int, statistics *Stat
 		if hubHasOnlineState && !subscriptionIsOnline {
 			statistics.AddUpdateDisconnected(1)
 			err = this.Logger.LogHubDisconnect(hub.Id)
+			if this.Debug {
+				log.Println("DEBUG: connect hub", hub)
+			}
 		}
 		if !hubHasOnlineState && subscriptionIsOnline {
 			statistics.AddUpdateConnected(1)
 			err = this.Logger.LogHubConnect(hub.Id)
+			if this.Debug {
+				log.Println("DEBUG: disconnect hub", hub)
+			}
 		}
 		if err != nil {
 			return count, err
@@ -254,10 +260,16 @@ func (this *ConnectionCheck) RunDeviceBatch(limit int, offset int, statistics *S
 		if deviceHasOnlineState && !subscriptionIsOnline {
 			statistics.AddUpdateDisconnected(1)
 			err = this.Logger.LogDeviceDisconnect(device.Id)
+			if this.Debug {
+				log.Println("DEBUG: disconnect device", device)
+			}
 		}
 		if !deviceHasOnlineState && subscriptionIsOnline {
 			statistics.AddUpdateConnected(1)
 			err = this.Logger.LogDeviceConnect(device.Id)
+			if this.Debug {
+				log.Println("DEBUG: connect device", device)
+			}
 		}
 		if err != nil {
 			return count, err
