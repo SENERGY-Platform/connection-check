@@ -43,7 +43,8 @@ type Devices interface {
 
 type Verne interface {
 	CheckOnlineSubscription(topic string) (onlineSubscriptionExists bool, err error)
+	CheckOnlineSubscriptions(topics []string) (onlineSubscriptionExists bool, err error)
 	CheckOnlineClient(clientId string) (onlineClientExists bool, err error)
 }
 
-type TopicGenerator = func(device model.Device, deviceType model.DeviceType, handledProtocols map[string]bool) (topic string, err error)
+type TopicGenerator = func(device model.Device, deviceType model.DeviceType, handledProtocols map[string]bool) (topicCandidates []string, err error)

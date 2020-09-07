@@ -175,6 +175,93 @@ func TestConnectionCheck(t *testing.T) {
 	})
 }
 
+func TestConnectionCheckPlaceholder(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	wg := &sync.WaitGroup{}
+	defer wg.Wait()
+	defer cancel()
+
+	pool, err := dockertest.NewPool("")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	brokerUrl, managementUrl, err := docker.VernemqWithManagementApi(pool, ctx, wg)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	loggerMock := mocks.Logger()
+	stateMock := mocks.State()
+	iotMock := mocks.Devices()
+
+	check := ConnectionCheck{
+		Logger:                     loggerMock,
+		LoggerState:                stateMock,
+		Verne:                      vernemq.New(managementUrl),
+		Devices:                    iotMock,
+		TokenGen:                   mocks.TokenGen,
+		SubscriptionTopicGenerator: topicgenerator.Known["senergy"],
+		BatchSize:                  2,
+		HandledProtocols:           map[string]bool{"test-protocol": true},
+		Debug:                      true,
+	}
+	t.Run("create device with +", testCreateDeviceType(iotMock, "dt1", []model.Service{
+		{
+			LocalId:     "sl1",
+			ProtocolId:  "test-protocol",
+			FunctionIds: []string{model.CONTROLLING_FUNCTION_PREFIX + "f1"},
+		},
+	}))
+
+	t.Run("create true online device", testCreateDevice(iotMock, stateMock, "true_online", "dt1", true))
+	t.Run("create true online + device", testCreateDevice(iotMock, stateMock, "true_online_p", "dt1", true))
+	t.Run("create true online # device", testCreateDevice(iotMock, stateMock, "true_online_s", "dt1", true))
+
+	t.Run("create true offline + device", testCreateDevice(iotMock, stateMock, "true_offline", "dt1", false))
+
+	t.Run("create false online device", testCreateDevice(iotMock, stateMock, "false_online", "dt1", true))
+
+	t.Run("create false offline device", testCreateDevice(iotMock, stateMock, "false_offline", "dt1", false))
+	t.Run("create false offline + device", testCreateDevice(iotMock, stateMock, "false_offline_p", "dt1", false))
+	t.Run("create false offline # device", testCreateDevice(iotMock, stateMock, "false_offline_s", "dt1", false))
+
+	t.Run("create mqtt client", testStartTestClient(ctx, wg, brokerUrl, "hub", []string{
+		"command/true_online/sl1",
+		"command/true_online_p/+",
+		"command/true_online_s/#",
+		"command/false_offline/sl1",
+		"command/false_offline_p/+",
+		"command/false_offline_s/#",
+	}))
+
+	time.Sleep(2 * time.Second)
+
+	t.Run("run devices", func(t *testing.T) {
+		err = check.RunDevices(nil)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+	})
+
+	t.Run("check events", func(t *testing.T) {
+		expected := []mocks.LogEvent{
+			{Id: "false_online", Kind: "device", Connected: false},
+			{Id: "false_offline", Kind: "device", Connected: true},
+			{Id: "false_offline_p", Kind: "device", Connected: true},
+			{Id: "false_offline_s", Kind: "device", Connected: true},
+		}
+
+		if !reflect.DeepEqual(loggerMock.Events, expected) {
+			temp, _ := json.Marshal(loggerMock.Events)
+			t.Error(string(temp))
+		}
+	})
+}
+
 func testCreateHub(iot *mocks.DevicesMock, stateRepo *mocks.LoggerStateMock, id string, devices []string, state bool) func(t *testing.T) {
 	return func(t *testing.T) {
 		iot.Mux.Lock()

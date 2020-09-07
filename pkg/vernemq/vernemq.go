@@ -95,6 +95,19 @@ func (this *VernemqManagementApi) GetOnlineSubscriptions() (result []Subscriptio
 	return temp.Table, nil
 }
 
+func (this *VernemqManagementApi) CheckOnlineSubscriptions(topics []string) (onlineSubscriptionExists bool, err error) {
+	for _, topic := range topics {
+		onlineSubscriptionExists, err = this.CheckOnlineSubscription(topic)
+		if err != nil {
+			return
+		}
+		if onlineSubscriptionExists {
+			return
+		}
+	}
+	return
+}
+
 func (this *VernemqManagementApi) CheckOnlineSubscription(topic string) (onlineSubscriptionExists bool, err error) {
 	path := "/api/v1/session/show?--is_online=true&--topic=" + url.QueryEscape(topic) + "&--limit=1"
 	req, err := http.NewRequest("GET", this.Url+path, nil)

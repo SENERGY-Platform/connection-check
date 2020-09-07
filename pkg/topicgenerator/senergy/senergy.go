@@ -23,12 +23,21 @@ import (
 )
 
 func init() {
-	known.Generators["senergy"] = func(device model.Device, deviceType model.DeviceType, handledProtocols map[string]bool) (topic string, err error) {
+	known.Generators["senergy"] = func(device model.Device, deviceType model.DeviceType, handledProtocols map[string]bool) (topicCandidates []string, err error) {
 		services := common.GetHandledServices(deviceType.Services, handledProtocols)
 		if len(services) == 0 {
-			return topic, common.NoSubscriptionExpected
+			return topicCandidates, common.NoSubscriptionExpected
 		}
-		service := services[0]
-		return "command/" + device.LocalId + "/" + service.LocalId, nil
+		set := map[string]bool{
+			"command/" + device.LocalId + "/+": true,
+			"command/" + device.LocalId + "/#": true,
+		}
+		for _, service := range services {
+			set["command/"+device.LocalId+"/"+service.LocalId] = true
+		}
+		for topic, _ := range set {
+			topicCandidates = append(topicCandidates, topic)
+		}
+		return topicCandidates, nil
 	}
 }

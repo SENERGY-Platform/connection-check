@@ -26,12 +26,37 @@ import (
 const DefaultActuatorPattern = "{{.DeviceId}}/cmnd/{{.LocalServiceId}}"
 
 func init() {
-	known.Generators["mqtt"] = func(device model.Device, deviceType model.DeviceType, handledProtocols map[string]bool) (result string, err error) {
+	known.Generators["mqtt"] = func(device model.Device, deviceType model.DeviceType, handledProtocols map[string]bool) (topicCandidates []string, err error) {
 		services := common.GetHandledServices(deviceType.Services, handledProtocols)
 		if len(services) == 0 {
-			return result, common.NoSubscriptionExpected
+			return topicCandidates, common.NoSubscriptionExpected
 		}
-		service := services[0]
-		return topic.New(DefaultActuatorPattern).Create(device.Id, service.LocalId)
+
+		gen := topic.New(DefaultActuatorPattern)
+
+		oneLevelPlaceholderTopic, err := gen.Create(device.Id, "+")
+		if err != nil {
+			return topicCandidates, err
+		}
+		multiLevelPlaceholderTopic, err := gen.Create(device.Id, "#")
+		if err != nil {
+			return topicCandidates, err
+		}
+
+		set := map[string]bool{
+			oneLevelPlaceholderTopic:   true,
+			multiLevelPlaceholderTopic: true,
+		}
+		for _, service := range services {
+			topic, err := gen.Create(device.Id, service.LocalId)
+			if err != nil {
+				return topicCandidates, err
+			}
+			set[topic] = true
+		}
+		for topic, _ := range set {
+			topicCandidates = append(topicCandidates, topic)
+		}
+		return topicCandidates, nil
 	}
 }

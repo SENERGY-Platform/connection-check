@@ -23,4 +23,4 @@ import (
 
 var NoSubscriptionExpected error = errors.New("no subscription expected")
 
-type TopicGenerator = func(device model.Device, deviceType model.DeviceType, handledProtocols map[string]bool) (topic string, err error)
+type TopicGenerator = func(device model.Device, deviceType model.DeviceType, handledProtocols map[string]bool) (topicCandidates []string, err error)

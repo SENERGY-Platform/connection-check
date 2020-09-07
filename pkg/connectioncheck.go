@@ -235,7 +235,7 @@ func (this *ConnectionCheck) RunDeviceBatch(limit int, offset int, statistics *S
 			statistics.AddTimeRequestDeviceTypes(time.Since(dtStart))
 			dtCache[dt.Id] = dt
 		}
-		topic, err := this.SubscriptionTopicGenerator(device, dt, this.HandledProtocols)
+		topics, err := this.SubscriptionTopicGenerator(device, dt, this.HandledProtocols)
 		if err == common.NoSubscriptionExpected {
 			err = nil
 			continue
@@ -245,7 +245,7 @@ func (this *ConnectionCheck) RunDeviceBatch(limit int, offset int, statistics *S
 		}
 		statistics.AddChecked(1)
 		timeVerneStart := time.Now()
-		subscriptionIsOnline, err := this.Verne.CheckOnlineSubscription(topic)
+		subscriptionIsOnline, err := this.Verne.CheckOnlineSubscriptions(topics)
 		if err != nil {
 			return count, err
 		}
