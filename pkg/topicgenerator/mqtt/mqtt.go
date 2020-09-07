@@ -34,29 +34,26 @@ func init() {
 
 		gen := topic.New(DefaultActuatorPattern)
 
-		oneLevelPlaceholderTopic, err := gen.Create(device.Id, "+")
-		if err != nil {
-			return topicCandidates, err
-		}
-		multiLevelPlaceholderTopic, err := gen.Create(device.Id, "#")
-		if err != nil {
-			return topicCandidates, err
-		}
-
-		set := map[string]bool{
-			oneLevelPlaceholderTopic:   true,
-			multiLevelPlaceholderTopic: true,
-		}
 		for _, service := range services {
 			topic, err := gen.Create(device.Id, service.LocalId)
 			if err != nil {
 				return topicCandidates, err
 			}
-			set[topic] = true
-		}
-		for topic, _ := range set {
 			topicCandidates = append(topicCandidates, topic)
 		}
+
+		oneLevelPlaceholderTopic, err := gen.Create(device.Id, "+")
+		if err != nil {
+			return topicCandidates, err
+		}
+		topicCandidates = append(topicCandidates, oneLevelPlaceholderTopic)
+
+		multiLevelPlaceholderTopic, err := gen.Create(device.Id, "#")
+		if err != nil {
+			return topicCandidates, err
+		}
+		topicCandidates = append(topicCandidates, multiLevelPlaceholderTopic)
+
 		return topicCandidates, nil
 	}
 }

@@ -28,16 +28,11 @@ func init() {
 		if len(services) == 0 {
 			return topicCandidates, common.NoSubscriptionExpected
 		}
-		set := map[string]bool{
-			"command/" + device.LocalId + "/+": true,
-			"command/" + device.LocalId + "/#": true,
-		}
 		for _, service := range services {
-			set["command/"+device.LocalId+"/"+service.LocalId] = true
+			topicCandidates = append(topicCandidates, "command/"+device.LocalId+"/"+service.LocalId)
 		}
-		for topic, _ := range set {
-			topicCandidates = append(topicCandidates, topic)
-		}
+		topicCandidates = append(topicCandidates, "command/"+device.LocalId+"/+")
+		topicCandidates = append(topicCandidates, "command/"+device.LocalId+"/#")
 		return topicCandidates, nil
 	}
 }
