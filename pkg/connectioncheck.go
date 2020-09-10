@@ -69,9 +69,10 @@ type ConnectionCheck struct {
 	BatchSize                  int
 	HandledProtocols           map[string]bool
 	Debug                      bool
+	intervalContext            context.Context
 }
 
-func (this *ConnectionCheck) RunInterval(ctx context.Context, duration time.Duration) {
+func (this *ConnectionCheck) RunInterval(ctx context.Context, duration time.Duration, health *HealthChecker) {
 	go func() {
 		ticker := time.NewTicker(duration)
 		defer ticker.Stop()
@@ -80,14 +81,15 @@ func (this *ConnectionCheck) RunInterval(ctx context.Context, duration time.Dura
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				this.runDevices()
-				this.runHubs()
+				health.LogIntervalStart()
+				this.runDevices(health)
+				this.runHubs(health)
 			}
 		}
 	}()
 }
 
-func (this *ConnectionCheck) runDevices() {
+func (this *ConnectionCheck) runDevices(health *HealthChecker) {
 	startTime := time.Now()
 
 	var statistics *Statistics
@@ -97,10 +99,11 @@ func (this *ConnectionCheck) runDevices() {
 
 	log.Println("start device-check")
 	err := this.RunDevices(statistics)
+	health.LogErrorDevices(err)
 	log.Println("finish device-check", err, time.Since(startTime), statistics.String())
 }
 
-func (this *ConnectionCheck) runHubs() {
+func (this *ConnectionCheck) runHubs(health *HealthChecker) {
 	startTime := time.Now()
 
 	var statistics *Statistics
@@ -110,6 +113,7 @@ func (this *ConnectionCheck) runHubs() {
 
 	log.Println("start hub-check")
 	err := this.RunHubs(statistics)
+	health.LogErrorHubs(err)
 	log.Println("finish hub-check", err, time.Since(startTime), statistics.String())
 }
 

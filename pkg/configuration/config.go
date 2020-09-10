@@ -32,6 +32,9 @@ type ConfigStruct struct {
 
 	BatchSize int `json:"batch_size"`
 
+	HealthPort       string `json:"health_port"`
+	HealthErrorLimit int    `json:"health_error_limit"`
+
 	DeviceManagerUrl      string   `json:"device_manager_url"`
 	PermSearchUrl         string   `json:"perm_search_url"`
 	TopicGenerator        string   `json:"topic_generator"`

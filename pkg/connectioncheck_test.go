@@ -165,13 +165,13 @@ func TestConnectionCheck(t *testing.T) {
 
 	t.Run("run private debug", func(t *testing.T) {
 		check.Debug = true
-		check.runDevices()
-		check.runHubs()
+		check.runDevices(nil)
+		check.runHubs(nil)
 	})
 	t.Run("run private without debug", func(t *testing.T) {
 		check.Debug = false
-		check.runDevices()
-		check.runHubs()
+		check.runDevices(nil)
+		check.runHubs(nil)
 	})
 }
 

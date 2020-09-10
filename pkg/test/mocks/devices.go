@@ -81,7 +81,7 @@ func (this *DevicesMock) ListDevices(token string, limit int, offset int) (resul
 	}
 	end := offset + limit
 	if end > len(this.Devices) {
-		end = len(this.Hubs)
+		end = len(this.Devices)
 	}
 	return this.Devices[offset:end], nil
 }

@@ -19,6 +19,7 @@ package main
 import (
 	connectioncheck "connection-check/pkg"
 	"connection-check/pkg/configuration"
+	"connection-check/pkg/health"
 	"context"
 	"flag"
 	"log"
@@ -27,12 +28,6 @@ import (
 	"syscall"
 	"time"
 )
-
-type VoidWriter struct{}
-
-func (v VoidWriter) Write(p []byte) (n int, err error) {
-	return len(p), nil
-}
 
 func main() {
 	time.Sleep(5 * time.Second) //wait for routing tables in cluster
@@ -52,7 +47,9 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	check.RunInterval(ctx, time.Duration(config.IntervalSeconds)*time.Second)
+	healthChecker := connectioncheck.NewHealthChecker(time.Duration(config.IntervalSeconds)*time.Second*2, config.HealthErrorLimit)
+	check.RunInterval(ctx, time.Duration(config.IntervalSeconds)*time.Second, healthChecker)
+	health.StartEndpoint(ctx, config.HealthPort, healthChecker)
 
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)

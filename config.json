@@ -19,5 +19,8 @@
 
   "memcache_urls":null,
   "cache_l1_expiration":0,
-  "cache_l2_expiration":0
+  "cache_l2_expiration":0,
+
+  "health_port": "8080",
+  "health_error_limit": 2
 }
