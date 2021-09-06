@@ -85,6 +85,7 @@ type ConnectionCheck struct {
 
 func (this *ConnectionCheck) RunInterval(ctx context.Context, duration time.Duration, health *HealthChecker) {
 	go func() {
+		this.run(health)
 		ticker := time.NewTicker(duration)
 		defer ticker.Stop()
 		for {
@@ -92,12 +93,16 @@ func (this *ConnectionCheck) RunInterval(ctx context.Context, duration time.Dura
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				health.LogIntervalStart()
-				this.runDevices(health)
-				this.runHubs(health)
+				this.run(health)
 			}
 		}
 	}()
+}
+
+func (this *ConnectionCheck) run(health *HealthChecker) {
+	health.LogIntervalStart()
+	this.runDevices(health)
+	this.runHubs(health)
 }
 
 func (this *ConnectionCheck) runDevices(health *HealthChecker) {
