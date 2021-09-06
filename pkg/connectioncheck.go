@@ -46,6 +46,15 @@ func New(config configuration.Config) (*ConnectionCheck, error) {
 	for _, protocolId := range config.HandledProtocols {
 		handledProtocols[strings.TrimSpace(protocolId)] = true
 	}
+	batchSleep := time.Duration(0)
+	if config.BatchSleep != "" && config.BatchSleep != "-" {
+		batchSleep, err = time.ParseDuration(config.BatchSleep)
+		if err != nil {
+			log.Println("WARNING: unable to parse batch_sleep; fallback to no sleep", err)
+			batchSleep = time.Duration(0)
+			err = nil
+		}
+	}
 	return &ConnectionCheck{
 		Logger:                     logger,
 		LoggerState:                state.New(config.ConnectionLogStateUrl),
@@ -54,6 +63,7 @@ func New(config configuration.Config) (*ConnectionCheck, error) {
 		TokenGen:                   security.New(config.AuthEndpoint, config.AuthClientId, config.AuthClientSecret, 2),
 		SubscriptionTopicGenerator: topic,
 		BatchSize:                  config.BatchSize,
+		BatchSleep:                 batchSleep,
 		HandledProtocols:           handledProtocols,
 		Debug:                      config.Debug,
 	}, nil
@@ -67,6 +77,7 @@ type ConnectionCheck struct {
 	TokenGen                   TokenGenerator
 	SubscriptionTopicGenerator TopicGenerator
 	BatchSize                  int
+	BatchSleep                 time.Duration
 	HandledProtocols           map[string]bool
 	Debug                      bool
 	intervalContext            context.Context
@@ -127,6 +138,9 @@ func (this *ConnectionCheck) RunDevices(statistics *Statistics) (err error) {
 			return err
 		}
 		offset = offset + limit
+		if count == limit && this.BatchSleep != 0 {
+			time.Sleep(this.BatchSleep)
+		}
 	}
 	return nil
 }
@@ -141,6 +155,9 @@ func (this *ConnectionCheck) RunHubs(statistics *Statistics) (err error) {
 			return err
 		}
 		offset = offset + limit
+		if count == limit && this.BatchSleep != 0 {
+			time.Sleep(this.BatchSleep)
+		}
 	}
 	return nil
 }

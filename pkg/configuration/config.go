@@ -30,7 +30,8 @@ import (
 type ConfigStruct struct {
 	Debug bool `json:"debug"`
 
-	BatchSize int `json:"batch_size"`
+	BatchSize  int    `json:"batch_size"`
+	BatchSleep string `json:"batch_sleep"`
 
 	HealthPort       string `json:"health_port"`
 	HealthErrorLimit int    `json:"health_error_limit"`
