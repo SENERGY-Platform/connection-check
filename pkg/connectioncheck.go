@@ -55,6 +55,10 @@ func New(config configuration.Config) (*ConnectionCheck, error) {
 			err = nil
 		}
 	}
+	assignmentIndex, err := ParseAssignmentId(config.AssignmentId)
+	if err != nil {
+		return nil, err
+	}
 	return &ConnectionCheck{
 		Logger:                     logger,
 		LoggerState:                state.New(config.ConnectionLogStateUrl),
@@ -66,6 +70,8 @@ func New(config configuration.Config) (*ConnectionCheck, error) {
 		BatchSleep:                 batchSleep,
 		HandledProtocols:           handledProtocols,
 		Debug:                      config.Debug,
+		AssignmentIndex:            assignmentIndex,
+		Scaling:                    config.Scaling,
 	}, nil
 }
 
@@ -81,6 +87,8 @@ type ConnectionCheck struct {
 	HandledProtocols           map[string]bool
 	Debug                      bool
 	intervalContext            context.Context
+	AssignmentIndex            int
+	Scaling                    int
 }
 
 func (this *ConnectionCheck) RunInterval(ctx context.Context, duration time.Duration, health *HealthChecker) {
@@ -138,12 +146,15 @@ func (this *ConnectionCheck) RunDevices(statistics *Statistics) (err error) {
 	offset := 0
 	count := limit
 	for count == limit {
-		count, err = this.RunDeviceBatch(limit, offset, statistics)
-		if err != nil {
-			return err
+		isAssignment := IsAssignedBatch(this.BatchSize, offset, this.Scaling, this.AssignmentIndex)
+		if isAssignment {
+			count, err = this.RunDeviceBatch(limit, offset, statistics)
+			if err != nil {
+				return err
+			}
 		}
 		offset = offset + limit
-		if count == limit && this.BatchSleep != 0 {
+		if isAssignment && count == limit && this.BatchSleep != 0 {
 			time.Sleep(this.BatchSleep)
 		}
 	}
@@ -155,12 +166,15 @@ func (this *ConnectionCheck) RunHubs(statistics *Statistics) (err error) {
 	offset := 0
 	count := limit
 	for count == limit {
-		count, err = this.RunHubBatch(limit, offset, statistics)
-		if err != nil {
-			return err
+		isAssignment := IsAssignedBatch(this.BatchSize, offset, this.Scaling, this.AssignmentIndex)
+		if isAssignment {
+			count, err = this.RunHubBatch(limit, offset, statistics)
+			if err != nil {
+				return err
+			}
 		}
 		offset = offset + limit
-		if count == limit && this.BatchSleep != 0 {
+		if isAssignment && count == limit && this.BatchSleep != 0 {
 			time.Sleep(this.BatchSleep)
 		}
 	}

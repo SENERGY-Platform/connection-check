@@ -23,5 +23,8 @@
   "cache_l2_expiration":0,
 
   "health_port": "8080",
-  "health_error_limit": 2
+  "health_error_limit": 2,
+
+  "scaling":1,
+  "assignment_id": "something-seperated-by-minus-and-ending-in-a-number-counting-from-0"
 }

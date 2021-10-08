@@ -55,6 +55,9 @@ type ConfigStruct struct {
 	MemcacheUrls      []string `json:"memcache_urls"`
 	CacheL1Expiration int      `json:"cache_l1_expiration"`
 	CacheL2Expiration int32    `json:"cache_l2_expiration"`
+
+	AssignmentId string `json:"assignment_id"`
+	Scaling      int    `json:"scaling"`
 }
 
 type Config = *ConfigStruct
