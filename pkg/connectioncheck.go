@@ -175,6 +175,9 @@ func (this *ConnectionCheck) RunHubBatch(limit int, offset int, statistics *Stat
 	if err != nil {
 		return count, err
 	}
+	if this.Debug {
+		log.Println("DEBUG: hubs", len(hubs))
+	}
 	statistics.AddTimeListRequests(time.Since(listStart))
 	ids := []string{}
 	filteredHubs := []model.Hub{}
@@ -184,14 +187,23 @@ func (this *ConnectionCheck) RunHubBatch(limit int, offset int, statistics *Stat
 			filteredHubs = append(filteredHubs, hub)
 		}
 	}
+	if this.Debug {
+		log.Println("DEBUG: filtered hubs", len(filteredHubs))
+	}
 	logStateStart := time.Now()
 	onlineStates, err := this.LoggerState.GetHubLogStates(token, ids)
 	if err != nil {
 		return count, err
 	}
+	if this.Debug {
+		log.Println("DEBUG: got states of filtered hubs")
+	}
 	statistics.AddTimeRequestLogState(time.Since(logStateStart))
 	statistics.AddChecked(len(filteredHubs))
 	for _, hub := range filteredHubs {
+		if this.Debug {
+			log.Println("DEBUG: check hub", hub.Id)
+		}
 		timeVerneStart := time.Now()
 		subscriptionIsOnline, err := this.Verne.CheckOnlineClient(hub.Id)
 		if err != nil {
