@@ -226,6 +226,9 @@ func (this *ConnectionCheck) RunHubBatch(limit int, offset int, statistics *Stat
 }
 
 func (this *ConnectionCheck) RunDeviceBatch(limit int, offset int, after *model.Device, statistics *Statistics) (last *model.Device, count int, err error) {
+	if this.Debug {
+		log.Println("DEBUG: run device batch", limit, offset, after)
+	}
 	token, err := this.TokenGen.Access()
 	if err != nil {
 		return last, count, err
