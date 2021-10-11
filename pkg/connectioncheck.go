@@ -163,6 +163,9 @@ func (this *ConnectionCheck) RunHubs(statistics *Statistics) (err error) {
 }
 
 func (this *ConnectionCheck) RunHubBatch(limit int, offset int, statistics *Statistics) (count int, err error) {
+	if this.Debug {
+		log.Println("DEBUG: run hub batch", limit, offset)
+	}
 	token, err := this.TokenGen.Access()
 	if err != nil {
 		return count, err
