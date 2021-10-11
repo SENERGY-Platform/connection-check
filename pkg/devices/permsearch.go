@@ -51,6 +51,7 @@ func (this *Devices) ListDevicesAfter(token string, limit int, after model.Devic
 		debug.PrintStack()
 		return result, err
 	}
+	this.cacheDevices(result)
 	return result, nil
 }
 
@@ -79,6 +80,7 @@ func (this *Devices) ListDevices(token string, limit int, offset int) (result []
 		debug.PrintStack()
 		return result, err
 	}
+	this.cacheDevices(result)
 	return result, nil
 }
 
