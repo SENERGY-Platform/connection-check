@@ -39,6 +39,7 @@ type Devices interface {
 	GetDeviceByLocalId(token string, localId string) (result model.Device, err error)
 	ListHubs(token string, limit int, offset int) (result []model.Hub, err error)
 	ListDevices(token string, limit int, offset int) (result []model.Device, err error)
+	ListDevicesAfter(token string, limit int, after model.Device) (result []model.Device, err error)
 }
 
 type Verne interface {

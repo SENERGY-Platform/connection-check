@@ -22,13 +22,41 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/url"
 	"runtime/debug"
 	"strconv"
 )
 
+func (this *Devices) ListDevicesAfter(token string, limit int, after model.Device) (result []model.Device, err error) {
+	req, err := http.NewRequest("GET", this.config.PermSearchUrl+"/v3/resources/devices?limit="+strconv.Itoa(limit)+"&after.id="+url.QueryEscape(after.Id)+"&after.sort_field_value="+url.QueryEscape(`"`+after.Name+`"`), nil)
+	if err != nil {
+		debug.PrintStack()
+		return result, err
+	}
+	req.Header.Set("Authorization", token)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		debug.PrintStack()
+		return result, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 300 {
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(resp.Body)
+		debug.PrintStack()
+		return result, errors.New(buf.String())
+	}
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		debug.PrintStack()
+		return result, err
+	}
+	return result, nil
+}
+
 //returns devices as known by the permissions search service
 func (this *Devices) ListDevices(token string, limit int, offset int) (result []model.Device, err error) {
-	req, err := http.NewRequest("GET", this.config.PermSearchUrl+"/jwt/list/devices/r/"+strconv.Itoa(limit)+"/"+strconv.Itoa(offset)+"/name/asc", nil)
+	req, err := http.NewRequest("GET", this.config.PermSearchUrl+"/v3/resources/devices?limit="+strconv.Itoa(limit)+"&offset="+strconv.Itoa(offset)+"&sort=name&rights=r", nil)
 	if err != nil {
 		debug.PrintStack()
 		return result, err

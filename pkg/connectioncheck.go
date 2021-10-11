@@ -46,15 +46,6 @@ func New(config configuration.Config) (*ConnectionCheck, error) {
 	for _, protocolId := range config.HandledProtocols {
 		handledProtocols[strings.TrimSpace(protocolId)] = true
 	}
-	batchSleep := time.Duration(0)
-	if config.BatchSleep != "" && config.BatchSleep != "-" {
-		batchSleep, err = time.ParseDuration(config.BatchSleep)
-		if err != nil {
-			log.Println("WARNING: unable to parse batch_sleep; fallback to no sleep", err)
-			batchSleep = time.Duration(0)
-			err = nil
-		}
-	}
 	assignmentIndex, err := ParseAssignmentId(config.AssignmentId)
 	if err != nil {
 		return nil, err
@@ -67,7 +58,6 @@ func New(config configuration.Config) (*ConnectionCheck, error) {
 		TokenGen:                   security.New(config.AuthEndpoint, config.AuthClientId, config.AuthClientSecret, 2),
 		SubscriptionTopicGenerator: topic,
 		BatchSize:                  config.BatchSize,
-		BatchSleep:                 batchSleep,
 		HandledProtocols:           handledProtocols,
 		Debug:                      config.Debug,
 		AssignmentIndex:            assignmentIndex,
@@ -83,7 +73,6 @@ type ConnectionCheck struct {
 	TokenGen                   TokenGenerator
 	SubscriptionTopicGenerator TopicGenerator
 	BatchSize                  int
-	BatchSleep                 time.Duration
 	HandledProtocols           map[string]bool
 	Debug                      bool
 	intervalContext            context.Context
@@ -145,18 +134,16 @@ func (this *ConnectionCheck) RunDevices(statistics *Statistics) (err error) {
 	limit := this.BatchSize
 	offset := 0
 	count := limit
+	var last *model.Device
 	for count == limit {
 		isAssignment := IsAssignedBatch(this.BatchSize, offset, this.Scaling, this.AssignmentIndex)
 		if isAssignment {
-			count, err = this.RunDeviceBatch(limit, offset, statistics)
+			last, count, err = this.RunDeviceBatch(limit, offset, last, statistics)
 			if err != nil {
 				return err
 			}
 		}
 		offset = offset + limit
-		if isAssignment && count == limit && this.BatchSleep != 0 {
-			time.Sleep(this.BatchSleep)
-		}
 	}
 	return nil
 }
@@ -174,9 +161,6 @@ func (this *ConnectionCheck) RunHubs(statistics *Statistics) (err error) {
 			}
 		}
 		offset = offset + limit
-		if isAssignment && count == limit && this.BatchSleep != 0 {
-			time.Sleep(this.BatchSleep)
-		}
 	}
 	return nil
 }
@@ -241,16 +225,24 @@ func (this *ConnectionCheck) RunHubBatch(limit int, offset int, statistics *Stat
 	return len(hubs), nil
 }
 
-func (this *ConnectionCheck) RunDeviceBatch(limit int, offset int, statistics *Statistics) (count int, err error) {
+func (this *ConnectionCheck) RunDeviceBatch(limit int, offset int, after *model.Device, statistics *Statistics) (last *model.Device, count int, err error) {
 	token, err := this.TokenGen.Access()
 	if err != nil {
-		return count, err
+		return last, count, err
 	}
 
 	listStart := time.Now()
-	devices, err := this.Devices.ListDevices(token, limit, offset)
+	var devices []model.Device
+	if after != nil {
+		devices, err = this.Devices.ListDevicesAfter(token, limit, *after)
+	} else {
+		devices, err = this.Devices.ListDevices(token, limit, offset)
+	}
 	if err != nil {
-		return count, err
+		return last, count, err
+	}
+	if len(devices) > 0 {
+		last = &devices[len(devices)-1]
 	}
 	statistics.AddTimeListRequests(time.Since(listStart))
 	ids := []string{}
@@ -260,7 +252,7 @@ func (this *ConnectionCheck) RunDeviceBatch(limit int, offset int, statistics *S
 	logStateStart := time.Now()
 	onlineStates, err := this.LoggerState.GetDeviceLogStates(token, ids)
 	if err != nil {
-		return count, err
+		return last, count, err
 	}
 	statistics.AddTimeRequestLogState(time.Since(logStateStart))
 	dtCache := map[string]model.DeviceType{}
@@ -270,7 +262,7 @@ func (this *ConnectionCheck) RunDeviceBatch(limit int, offset int, statistics *S
 			dtStart := time.Now()
 			dt, err = this.Devices.GetDeviceType(token, device.DeviceTypeId)
 			if err != nil {
-				return count, err
+				return last, count, err
 			}
 			statistics.AddTimeRequestDeviceTypes(time.Since(dtStart))
 			dtCache[dt.Id] = dt
@@ -281,13 +273,13 @@ func (this *ConnectionCheck) RunDeviceBatch(limit int, offset int, statistics *S
 			continue
 		}
 		if err != nil {
-			return count, err
+			return last, count, err
 		}
 		statistics.AddChecked(1)
 		timeVerneStart := time.Now()
 		subscriptionIsOnline, err := this.Verne.CheckOnlineSubscriptions(topics)
 		if err != nil {
-			return count, err
+			return last, count, err
 		}
 		statistics.AddTimeVerneRequests(time.Since(timeVerneStart))
 
@@ -312,10 +304,10 @@ func (this *ConnectionCheck) RunDeviceBatch(limit int, offset int, statistics *S
 			}
 		}
 		if err != nil {
-			return count, err
+			return last, count, err
 		}
 	}
-	return len(devices), nil
+	return last, len(devices), nil
 }
 
 func (this *ConnectionCheck) hubMatchesHandledProtocols(token string, hub model.Hub, statistics *Statistics) bool {

@@ -38,6 +38,27 @@ type DevicesMock struct {
 	Hubs        []model.Hub
 }
 
+func (this *DevicesMock) ListDevicesAfter(token string, limit int, after model.Device) (result []model.Device, err error) {
+	this.Mux.Lock()
+	defer this.Mux.Unlock()
+	afterFoundAt := -1
+	for i, d := range this.Devices {
+		if d.Id == after.Id {
+			afterFoundAt = i
+			break
+		}
+	}
+	if afterFoundAt > -1 {
+		offset := afterFoundAt + 1
+		end := offset + limit
+		if end > len(this.Devices) {
+			end = len(this.Devices)
+		}
+		result = this.Devices[offset:end]
+	}
+	return
+}
+
 func (this *DevicesMock) GetDeviceType(token string, id string) (result model.DeviceType, err error) {
 	this.Mux.Lock()
 	defer this.Mux.Unlock()
