@@ -136,12 +136,9 @@ func (this *ConnectionCheck) RunDevices(statistics *Statistics) (err error) {
 	count := limit
 	var last *model.Device
 	for count == limit {
-		isAssignment := IsAssignedBatch(this.BatchSize, offset, this.Scaling, this.AssignmentIndex)
-		if isAssignment {
-			last, count, err = this.RunDeviceBatch(limit, offset, last, statistics)
-			if err != nil {
-				return err
-			}
+		last, count, err = this.RunDeviceBatch(limit, offset, last, statistics)
+		if err != nil {
+			return err
 		}
 		offset = offset + limit
 	}
@@ -247,67 +244,70 @@ func (this *ConnectionCheck) RunDeviceBatch(limit int, offset int, after *model.
 	if len(devices) > 0 {
 		last = &devices[len(devices)-1]
 	}
-	statistics.AddTimeListRequests(time.Since(listStart))
-	ids := []string{}
-	for _, device := range devices {
-		ids = append(ids, device.Id)
-	}
-	logStateStart := time.Now()
-	onlineStates, err := this.LoggerState.GetDeviceLogStates(token, ids)
-	if err != nil {
-		return last, count, err
-	}
-	statistics.AddTimeRequestLogState(time.Since(logStateStart))
-	dtCache := map[string]model.DeviceType{}
-	for _, device := range devices {
-		dt, ok := dtCache[device.DeviceTypeId]
-		if !ok {
-			dtStart := time.Now()
-			dt, err = this.Devices.GetDeviceType(token, device.DeviceTypeId)
+	isAssignment := IsAssignedBatch(this.BatchSize, offset, this.Scaling, this.AssignmentIndex)
+	if isAssignment {
+		statistics.AddTimeListRequests(time.Since(listStart))
+		ids := []string{}
+		for _, device := range devices {
+			ids = append(ids, device.Id)
+		}
+		logStateStart := time.Now()
+		onlineStates, err := this.LoggerState.GetDeviceLogStates(token, ids)
+		if err != nil {
+			return last, count, err
+		}
+		statistics.AddTimeRequestLogState(time.Since(logStateStart))
+		dtCache := map[string]model.DeviceType{}
+		for _, device := range devices {
+			dt, ok := dtCache[device.DeviceTypeId]
+			if !ok {
+				dtStart := time.Now()
+				dt, err = this.Devices.GetDeviceType(token, device.DeviceTypeId)
+				if err != nil {
+					return last, count, err
+				}
+				statistics.AddTimeRequestDeviceTypes(time.Since(dtStart))
+				dtCache[dt.Id] = dt
+			}
+			topics, err := this.SubscriptionTopicGenerator(device, dt, this.HandledProtocols)
+			if err == common.NoSubscriptionExpected {
+				err = nil
+				continue
+			}
 			if err != nil {
 				return last, count, err
 			}
-			statistics.AddTimeRequestDeviceTypes(time.Since(dtStart))
-			dtCache[dt.Id] = dt
-		}
-		topics, err := this.SubscriptionTopicGenerator(device, dt, this.HandledProtocols)
-		if err == common.NoSubscriptionExpected {
-			err = nil
-			continue
-		}
-		if err != nil {
-			return last, count, err
-		}
-		statistics.AddChecked(1)
-		timeVerneStart := time.Now()
-		subscriptionIsOnline, err := this.Verne.CheckOnlineSubscriptions(topics)
-		if err != nil {
-			return last, count, err
-		}
-		statistics.AddTimeVerneRequests(time.Since(timeVerneStart))
-
-		if subscriptionIsOnline {
-			statistics.AddConnected(1)
-		}
-
-		deviceHasOnlineState := onlineStates[device.Id]
-
-		if deviceHasOnlineState && !subscriptionIsOnline {
-			statistics.AddUpdateDisconnected(1)
-			err = this.Logger.LogDeviceDisconnect(device.Id)
-			if this.Debug {
-				log.Println("DEBUG: disconnect device", device)
+			statistics.AddChecked(1)
+			timeVerneStart := time.Now()
+			subscriptionIsOnline, err := this.Verne.CheckOnlineSubscriptions(topics)
+			if err != nil {
+				return last, count, err
 			}
-		}
-		if !deviceHasOnlineState && subscriptionIsOnline {
-			statistics.AddUpdateConnected(1)
-			err = this.Logger.LogDeviceConnect(device.Id)
-			if this.Debug {
-				log.Println("DEBUG: connect device", device)
+			statistics.AddTimeVerneRequests(time.Since(timeVerneStart))
+
+			if subscriptionIsOnline {
+				statistics.AddConnected(1)
 			}
-		}
-		if err != nil {
-			return last, count, err
+
+			deviceHasOnlineState := onlineStates[device.Id]
+
+			if deviceHasOnlineState && !subscriptionIsOnline {
+				statistics.AddUpdateDisconnected(1)
+				err = this.Logger.LogDeviceDisconnect(device.Id)
+				if this.Debug {
+					log.Println("DEBUG: disconnect device", device)
+				}
+			}
+			if !deviceHasOnlineState && subscriptionIsOnline {
+				statistics.AddUpdateConnected(1)
+				err = this.Logger.LogDeviceConnect(device.Id)
+				if this.Debug {
+					log.Println("DEBUG: connect device", device)
+				}
+			}
+			if err != nil {
+				return last, count, err
+			}
 		}
 	}
 	return last, len(devices), nil
