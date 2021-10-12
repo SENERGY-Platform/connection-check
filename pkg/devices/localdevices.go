@@ -80,6 +80,13 @@ func (this *Devices) HubContainsAnyGivenDeviceType(token string, cacheId string,
 }
 
 func (this *Devices) hubContainsAnyGivenDeviceType(token string, hub model.Hub, dtIds []string) (result bool, err error) {
+	if dtIds == nil {
+		return false, nil
+	}
+	if hub.DeviceLocalIds == nil {
+		return false, nil
+	}
+
 	temp := []model.Device{}
 	err = this.Query(token, QueryMessage{
 		Resource: "devices",
