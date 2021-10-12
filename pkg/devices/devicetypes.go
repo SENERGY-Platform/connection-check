@@ -58,3 +58,62 @@ func (this *Devices) getDeviceType(token string, id string) (result model.Device
 	}
 	return result, nil
 }
+
+func (this *Devices) ListAllDeviceTypesWithFilter(token string, cacheId string, filter func(dt model.DeviceType) bool) (result []model.DeviceType, err error) {
+	err = this.cache.Use(cacheId, func() (interface{}, error) {
+		return this.listAllDeviceTypesWithFilter(token, filter)
+	}, &result)
+	return
+}
+
+func (this *Devices) listAllDeviceTypesWithFilter(token string, filter func(dt model.DeviceType) bool) (result []model.DeviceType, err error) {
+	limit := 1000
+	var last model.DeviceType
+	temp := []model.DeviceType{}
+	err = this.Query(token, QueryMessage{
+		Resource: "device-types",
+		Find: &QueryFind{
+			QueryListCommons: QueryListCommons{
+				Limit:    limit,
+				Offset:   0,
+				After:    nil,
+				Rights:   "r",
+				SortBy:   "name",
+				SortDesc: false,
+			},
+		},
+	}, &temp)
+	if err != nil {
+		return result, err
+	}
+	for {
+		for _, dt := range temp {
+			if filter(dt) {
+				result = append(result, dt)
+			}
+		}
+		if len(temp) < limit {
+			return result, err
+		}
+		last = temp[limit-1]
+		temp = []model.DeviceType{}
+		err = this.Query(token, QueryMessage{
+			Resource: "device-types",
+			Find: &QueryFind{
+				QueryListCommons: QueryListCommons{
+					Limit: limit,
+					After: &ListAfter{
+						SortFieldValue: last.Name,
+						Id:             last.Id,
+					},
+					Rights:   "r",
+					SortBy:   "name",
+					SortDesc: false,
+				},
+			},
+		}, &temp)
+		if err != nil {
+			return result, err
+		}
+	}
+}

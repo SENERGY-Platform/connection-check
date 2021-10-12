@@ -38,6 +38,36 @@ type DevicesMock struct {
 	Hubs        []model.Hub
 }
 
+func (this *DevicesMock) ListAllDeviceTypesWithFilter(token string, cacheId string, filter func(dt model.DeviceType) bool) (result []model.DeviceType, err error) {
+	this.Mux.Lock()
+	defer this.Mux.Unlock()
+	for _, dt := range this.DeviceTypes {
+		if filter(dt) {
+			result = append(result, dt)
+		}
+	}
+	return result, nil
+}
+
+func (this *DevicesMock) HubContainsAnyGivenDeviceType(token string, cacheId string, hub model.Hub, dtIds []string) (bool, error) {
+	this.Mux.Lock()
+	defer this.Mux.Unlock()
+	dtMap := map[string]bool{}
+	for _, dt := range dtIds {
+		dtMap[dt] = true
+	}
+	localIdMap := map[string]bool{}
+	for _, id := range hub.DeviceLocalIds {
+		localIdMap[id] = true
+	}
+	for _, device := range this.Devices {
+		if dtMap[device.DeviceTypeId] && localIdMap[device.LocalId] {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func (this *DevicesMock) ListDevicesAfter(token string, limit int, after model.Device) (result []model.Device, err error) {
 	this.Mux.Lock()
 	defer this.Mux.Unlock()

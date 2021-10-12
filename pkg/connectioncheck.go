@@ -29,6 +29,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"runtime/debug"
 	"strings"
 	"time"
 )
@@ -329,43 +330,21 @@ func (this *ConnectionCheck) RunDeviceBatch(limit int, offset int, after *model.
 }
 
 func (this *ConnectionCheck) hubMatchesHandledProtocols(token string, hub model.Hub, statistics *Statistics) bool {
-	dtCache := map[string]model.DeviceType{}
-	for _, deviceLocalId := range hub.DeviceLocalIds {
-		localIdStart := time.Now()
-		device, err := this.Devices.GetDeviceByLocalId(token, deviceLocalId)
-		if err != nil && this.Debug {
-			log.Println("WARNING: hubMatchesHandledProtocols() unable to load device", deviceLocalId, err)
-		}
-		statistics.AddTimeRequestLocalDevice(time.Since(localIdStart))
-		if err == nil {
-			dt, ok := dtCache[device.DeviceTypeId]
-			if !ok {
-				dtStart := time.Now()
-				dt, err = this.Devices.GetDeviceType(token, device.DeviceTypeId)
-				if err != nil {
-					if this.Debug {
-						log.Println("WARNING: hubMatchesHandledProtocols() unable to load device-type", device.DeviceTypeId, err)
-					}
-				} else {
-					dtCache[dt.Id] = dt
-				}
-				statistics.AddTimeRequestLocalDevice(time.Since(dtStart))
-			}
-			if err == nil {
-				if common.DeviceTypeUsesHandledProtocol(dt, this.HandledProtocols) {
-					return true
-				}
-			}
-		}
+	deviceTypes, err := this.Devices.ListAllDeviceTypesWithFilter(token, "dt.list.filtered", func(dt model.DeviceType) bool { return common.DeviceTypeUsesHandledProtocol(dt, this.HandledProtocols) })
+	if err != nil {
+		log.Println("ERROR:", err)
+		debug.PrintStack()
+		return false
 	}
-	return false
-}
-
-func (this *ConnectionCheck) deviceTypeMatchesHandledProtocols(dt model.DeviceType) bool {
-	for _, service := range dt.Services {
-		if this.HandledProtocols[service.ProtocolId] {
-			return true
-		}
+	dtIds := []string{}
+	for _, dt := range deviceTypes {
+		dtIds = append(dtIds, dt.Id)
 	}
-	return false
+	result, err := this.Devices.HubContainsAnyGivenDeviceType(token, "hub.check.dts."+hub.Id, hub, dtIds)
+	if err != nil {
+		log.Println("ERROR:", err)
+		debug.PrintStack()
+		return false
+	}
+	return result
 }

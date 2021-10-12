@@ -71,3 +71,49 @@ func (this *Devices) getDeviceByLocalId(token string, localId string) (result mo
 	}
 	return result, nil
 }
+
+func (this *Devices) HubContainsAnyGivenDeviceType(token string, cacheId string, hub model.Hub, dtIds []string) (result bool, err error) {
+	err = this.cache.Use(cacheId, func() (interface{}, error) {
+		return this.hubContainsAnyGivenDeviceType(token, hub, dtIds)
+	}, &result)
+	return
+}
+
+func (this *Devices) hubContainsAnyGivenDeviceType(token string, hub model.Hub, dtIds []string) (result bool, err error) {
+	temp := []model.Device{}
+	err = this.Query(token, QueryMessage{
+		Resource: "devices",
+		Find: &QueryFind{
+			QueryListCommons: QueryListCommons{
+				Limit:    1,
+				Offset:   0,
+				Rights:   "r",
+				SortBy:   "name",
+				SortDesc: false,
+			},
+			Filter: &Selection{
+				And: []Selection{
+					{
+						Condition: ConditionConfig{
+							Feature:   "features.device_type_id",
+							Operation: QueryAnyValueInFeatureOperation,
+							Value:     dtIds,
+						},
+					},
+					{
+						Condition: ConditionConfig{
+							Feature:   "features.local_id",
+							Operation: QueryAnyValueInFeatureOperation,
+							Value:     hub.DeviceLocalIds,
+						},
+					},
+				},
+			},
+		},
+	}, &temp)
+	if err != nil {
+		return false, err
+	}
+	result = len(temp) > 0
+	return result, nil
+}

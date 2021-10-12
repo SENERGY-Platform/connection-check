@@ -86,7 +86,7 @@ func (this *Devices) ListDevices(token string, limit int, offset int) (result []
 
 //returns hubs as known by the permissions search service
 func (this *Devices) ListHubs(token string, limit int, offset int) (result []model.Hub, err error) {
-	req, err := http.NewRequest("GET", this.config.PermSearchUrl+"/jwt/list/hubs/r/"+strconv.Itoa(limit)+"/"+strconv.Itoa(offset)+"/name/asc", nil)
+	req, err := http.NewRequest("GET", this.config.PermSearchUrl+"/v3/resources/hubs?limit="+strconv.Itoa(limit)+"&offset="+strconv.Itoa(offset)+"&sort=name&rights=r", nil)
 	if err != nil {
 		debug.PrintStack()
 		return result, err
@@ -110,4 +110,83 @@ func (this *Devices) ListHubs(token string, limit int, offset int) (result []mod
 		return result, err
 	}
 	return result, nil
+}
+
+func (this *Devices) Query(token string, query QueryMessage, result interface{}) (err error) {
+	body := new(bytes.Buffer)
+	err = json.NewEncoder(body).Encode(query)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequest("POST", this.config.PermSearchUrl+"/v3/query", body)
+	if err != nil {
+		debug.PrintStack()
+		return err
+	}
+	req.Header.Set("Authorization", token)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		debug.PrintStack()
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 300 {
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(resp.Body)
+		debug.PrintStack()
+		return errors.New(buf.String())
+	}
+	err = json.NewDecoder(resp.Body).Decode(result)
+	if err != nil {
+		debug.PrintStack()
+		return err
+	}
+	return nil
+}
+
+type QueryMessage struct {
+	Resource      string     `json:"resource"`
+	Find          *QueryFind `json:"find"`
+	TermAggregate *string    `json:"term_aggregate"`
+}
+type QueryFind struct {
+	QueryListCommons
+	Search string     `json:"search"`
+	Filter *Selection `json:"filter"`
+}
+
+type QueryListCommons struct {
+	Limit    int        `json:"limit"`
+	Offset   int        `json:"offset"`
+	After    *ListAfter `json:"after"`
+	Rights   string     `json:"rights"`
+	SortBy   string     `json:"sort_by"`
+	SortDesc bool       `json:"sort_desc"`
+}
+
+type ListAfter struct {
+	SortFieldValue interface{} `json:"sort_field_value"`
+	Id             string      `json:"id"`
+}
+
+type QueryOperationType string
+
+const (
+	QueryEqualOperation             QueryOperationType = "=="
+	QueryUnequalOperation           QueryOperationType = "!="
+	QueryAnyValueInFeatureOperation QueryOperationType = "any_value_in_feature"
+)
+
+type ConditionConfig struct {
+	Feature   string             `json:"feature"`
+	Operation QueryOperationType `json:"operation"`
+	Value     interface{}        `json:"value"`
+	Ref       string             `json:"ref"`
+}
+
+type Selection struct {
+	And       []Selection     `json:"and"`
+	Or        []Selection     `json:"or"`
+	Not       *Selection      `json:"not"`
+	Condition ConditionConfig `json:"condition"`
 }

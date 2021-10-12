@@ -36,10 +36,11 @@ type TokenGenerator interface {
 
 type Devices interface {
 	GetDeviceType(token string, id string) (result model.DeviceType, err error)
-	GetDeviceByLocalId(token string, localId string) (result model.Device, err error)
 	ListHubs(token string, limit int, offset int) (result []model.Hub, err error)
 	ListDevices(token string, limit int, offset int) (result []model.Device, err error)
 	ListDevicesAfter(token string, limit int, after model.Device) (result []model.Device, err error)
+	ListAllDeviceTypesWithFilter(token string, cacheId string, filter func(dt model.DeviceType) bool) ([]model.DeviceType, error)
+	HubContainsAnyGivenDeviceType(token string, cacheId string, hub model.Hub, dtIds []string) (bool, error)
 }
 
 type Verne interface {
