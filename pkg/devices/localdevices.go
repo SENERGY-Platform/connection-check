@@ -21,30 +21,10 @@ import (
 	"connection-check/pkg/model"
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"net/url"
 	"runtime/debug"
 )
-
-func (this *Devices) GetDeviceByLocalId(token string, localId string) (result model.Device, err error) {
-	err = this.cache.Use("local-devices."+localId, func() (interface{}, error) {
-		return this.getDeviceByLocalId(token, localId)
-	}, &result)
-	return
-}
-
-func (this *Devices) cacheDevices(devices []model.Device) {
-	for _, device := range devices {
-		temp, err := json.Marshal(device)
-		if err != nil {
-			log.Println("ERROR:", err)
-			debug.PrintStack()
-			return
-		}
-		this.cache.Set("local-devices."+device.LocalId, temp)
-	}
-}
 
 func (this *Devices) getDeviceByLocalId(token string, localId string) (result model.Device, err error) {
 	req, err := http.NewRequest("GET", this.config.DeviceManagerUrl+"/local-devices/"+url.PathEscape(localId), nil)
