@@ -80,10 +80,10 @@ func (this *Devices) HubContainsAnyGivenDeviceType(token string, cacheId string,
 }
 
 func (this *Devices) hubContainsAnyGivenDeviceType(token string, hub model.Hub, dtIds []string) (result bool, err error) {
-	if dtIds == nil {
+	if len(dtIds) == 0 {
 		return false, nil
 	}
-	if hub.DeviceLocalIds == nil {
+	if len(hub.DeviceLocalIds) == 0 {
 		return false, nil
 	}
 
